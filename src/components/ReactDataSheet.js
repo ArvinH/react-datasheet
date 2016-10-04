@@ -17,9 +17,9 @@ const isEmpty = (obj) => {
 }
 const range = (start, end) => {
   let array = [];
-  let inc = (end-start > 0);
-  for (let i = start; inc ? (i < end) : (i>end); inc ? i++ : i--) {
-    array.push(i);
+  let inc = end - start > 0;
+  for (let i = start; inc ? (i <= end) : (i >= end); inc ? i++ : i--) {
+    inc ? array.push(i) : array.unshift(i);
   }
   return array;
 }   
@@ -70,15 +70,30 @@ export default class ReactDataSheet extends Component {
   }
 
   handleCopy(e) {
-    let cellConverter = this.props.dataRenderer ? this.props.dataRenderer : this.props.valueRenderer;
-    if (!isEmpty(this.state.start)) {
-      let text = range(this.state.start.i, this.state.end.i + 1).map((j) => 
-        this.props.data.slice(0)[j].slice(this.state.start.j, this.state.end.j + 1)
-          .map(cell=> cellConverter(cell)).join('\t')
-      ).join('\n');
-      e.preventDefault();
-      e.clipboardData.setData('text/plain', text);
-    }
+     let {dataRenderer, valueRenderer, data} = this.props;
+ 
+     if(dataRenderer) {
+       valueRenderer = dataRenderer;
+     }
+     if(isEmpty(this.state.start)) {
+       return false;
+      }
+     let {start, end} = this.state;
+     let text = range(start.i, end.i).map((i) => 
+       range(start.j, end.j).map(j => data[i][j])
+         .map(cell=> { 
+           let value = dataRenderer ? dataRenderer(cell) : null;
+           if(value === "" || value === null || typeof(value) === "undefined") {
+             return valueRenderer(cell);
+           }
+           else {
+             return value;
+           }
+         }).join('\t')
+       
+     ).join('\n');
+     e.preventDefault();
+     e.clipboardData.setData('text/plain', text);
   }
 
   handlePaste(e) {
@@ -134,8 +149,8 @@ export default class ReactDataSheet extends Component {
 
   getSelectedCells(data, start, end) {
     let selected = [];
-    range(start.i, end.i+1).map(i => {
-      range(start.j, end.j+1).map(j => {
+    range(start.i, end.i).map(i => {
+      range(start.j, end.j).map(j => {
         selected.push({cell:data[i][j], i, j});
       })
     });
@@ -164,10 +179,10 @@ export default class ReactDataSheet extends Component {
     let isEditing = !isEmpty(this.state.editing);
 
     if ((e.keyCode === DELETE_KEY || e.keyCode === BACKSPACE_KEY) && !isEditing) {
-      //CASE when user presses delete
-      console.log(this.getSelectedCells(data, start, end));
       this.getSelectedCells(data, start, end).map(({cell,i,j}) => {
-        this.onChange(i,j,'');
+        if (!cell.readOnly) {
+          this.onChange(i, j, "");  
+        }
       });
       e.preventDefault();
     } else if (e.keyCode === ENTER_KEY && isEditing) {
@@ -218,8 +233,10 @@ export default class ReactDataSheet extends Component {
   
   onChange(i,j, val) {
     let cell = this.props.data[i][j];
-    this.props.onChange(cell,i,j,val); 
-    this.setState({editing:{}})
+    if(!cell.readOnly) {
+      this.props.onChange(cell,i,j,val); 
+      this.setState({editing:{}})
+    }
   } 
 
   render() {
@@ -259,7 +276,7 @@ export default class ReactDataSheet extends Component {
               onMouseOver   = {this.onMouseOver}
 
               value    = {valueRenderer(cell)} 
-              data     = {dataRenderer ? dataRenderer(cell) : valueRenderer(cell)}
+              data     = {dataRenderer ? dataRenderer(cell) : null}
               selected = {isSelected(i,j)}
               editing  = {isEditing(i,j)}
               colSpan  = {cell.colSpan}
@@ -287,6 +304,7 @@ export default class ReactDataSheet extends Component {
 //>rowSpan   : Adds the rowspan attribute to the cell <td> element
 ReactDataSheet.propTypes = {
   data: PropTypes.array.isRequired,           // Array of objects, number
+  className: PropTypes.string,                // (Optional) Extra class to be added
   onChange: PropTypes.func,                   // Fn to handle any change
   valueRenderer: PropTypes.func.isRequired,   // Fn to render data from provided data celss
   dataRenderer: PropTypes.func,               // (Optional) Fn to provide data underneath visible data (like a formula) 
