@@ -1,7 +1,10 @@
 # React DataSheet 
 
 A simple react component to create a spreadsheet.
-View DEMO https://nadbm.github.io/react-datasheet/
+
+
+## Developing new feature...
+
 
 ## Current features
 1. Select cells, copy-paste cells
@@ -10,11 +13,11 @@ View DEMO https://nadbm.github.io/react-datasheet/
 4. Callbacks for onChange, valueRenderer(visible data), dataRenderer(underlying data in the input, takes the value by default)
     * more examples to come soon! 
 
-## Installation    
+<!-- ## Installation    
 React 15
 
-    npm install react-datasheet --save
-
+    npm install react-data-sheet --save
+ -->
 
 ## Usage
 ``` javascript
